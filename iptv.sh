@@ -9025,6 +9025,12 @@ ScheduleHbozw()
         printf '{"%s":[]}' "hbo" > "$SCHEDULE_JSON"
     fi
 
+    hboasia_proxy=()
+    if [ -s "$IPTV_ROOT/hboasia_proxy" ] 
+    then
+        hboasia_proxy+=( -x $(< $IPTV_ROOT/hboasia_proxy) )
+    fi
+
     for chnl in "${hbozw_chnls[@]}"
     do
         chnl_id=${chnl%%:*}
@@ -9063,7 +9069,7 @@ ScheduleHbozw()
                 "time":"'"$program_time"'",
                 "sys_time":"'"$program_sys_time"'"
             }'
-        done < <(curl -s -Lm 10 -H "User-Agent: $user_agent" "$SCHEDULE_LINK" | $JQ_FILE '.[] | [.id,.time,.sys_time,.title,.title_local] | join("^")')
+        done < <(curl ${hboasia_proxy[@]+"${hboasia_proxy[@]}"} -s -Lm 10 -H "User-Agent: $user_agent" "$SCHEDULE_LINK" | $JQ_FILE '.[] | [.id,.time,.sys_time,.title,.title_local] | join("^")')
 
         if [ -n "$schedule" ] 
         then
@@ -24739,7 +24745,7 @@ DeployCloudflareWorker()
             InstallPython
         fi
 
-        if [ "$sh_debug" -eq 0 ] 
+        if [ "$sh_debug" -eq 0 ] && [ ! -e "$IPTV_ROOT/VIP" ]
         then
             curl -s -Lm 10 "$CF_WORKERS_LINK" -o "$CF_WORKERS_FILE" \
             || curl -s -Lm 20 "$CF_WORKERS_LINK_BACKUP" -o "$CF_WORKERS_FILE"
@@ -31401,6 +31407,7 @@ method=ignore" > /etc/NetworkManager/system-connections/eth0.nmconnection
                                 cd ~
                                 rm -rf dnscrypt-$dnscrypt_version
                                 Println "$error 发生错误，请重试\n"
+                                exit 1
                             fi
                         done
 
